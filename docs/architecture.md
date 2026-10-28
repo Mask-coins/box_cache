@@ -14,7 +14,8 @@ box_cache/
 ├─ README.md
 ├─ docs/
 │  ├─ specification.md
-│  └─ architecture.md
+│  ├─ architecture.md
+│  └─ development.md
 ├─ src/
 │  └─ box_cache/
 │     ├─ __init__.py
@@ -38,6 +39,7 @@ box_cache/
 | `README.md` | 利用者向けのインストール、初期設定、使用方法 |
 | `docs/specification.md` | 動作仕様、制約、未決定事項 |
 | `docs/architecture.md` | ディレクトリ構成と実装上の役割分担 |
+| `docs/development.md` | 開発用インストール、テスト、配布物の作成手順 |
 | `src/box_cache/__init__.py` | `put`、`get` などの公開APIの窓口 |
 | `src/box_cache/__main__.py` | `python -m box_cache` の起動入口 |
 | `src/box_cache/cache.py` | 保存・読み出しの処理の組み立て、最新版の選択 |
