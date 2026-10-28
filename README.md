@@ -8,15 +8,30 @@ Windows用の、過去の版を保持するファイルキャッシュです。
 WindowsとPython 3.11以降が必要です。動作確認環境はPython 3.14です。
 実行時の外部依存ライブラリはありません。
 
-ソースコードのルートで、使用したいPython環境から実行します。
+使用したいPython環境から、GitHubの最新版を直接インストールできます。
+事前のダウンロード・展開・Gitのインストールは不要です。
 
 ```powershell
-python -m pip install .
+python -m pip install "https://github.com/Mask-coins/box_cache/archive/refs/heads/master.zip"
 ```
 
-開発時に編集を即座に反映するなら `python -m pip install -e .` を使用できます。
-仮想環境の作り直しや `pyvenv.cfg` の編集は必要ありません。
-PyPIへの公開は行っていません。
+IntelliJで既存の `.venv` を使っている場合は、そのPythonを明示してインストールできます。
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install "https://github.com/Mask-coins/box_cache/archive/refs/heads/master.zip"
+```
+
+この例は利用先プロジェクトのルートで実行します。仮想環境の作り直しや `pyvenv.cfg` の編集は必要ありません。
+ライブラリは利用するPython環境ごとにインストールし、キャッシュの保存先設定は同じWindowsユーザー内で共有します。
+
+更新時は次を実行します。同じバージョン番号でもGitHub上の更新を取り込めるよう、再インストールを指定します。
+
+```powershell
+python -m pip install --upgrade --force-reinstall "https://github.com/Mask-coins/box_cache/archive/refs/heads/master.zip"
+```
+
+上記URLは `master` ブランチの最新内容を指します。利用する版を固定する場合は、`https://github.com/Mask-coins/box_cache/archive/<コミットSHA>.zip` の形式で対象のコミットを指定してください。
+公開先は [GitHubリポジトリ](https://github.com/Mask-coins/box_cache) です。PyPIへの公開は行っていません。
 
 ## 初期設定
 
@@ -96,6 +111,14 @@ except CacheError as error:
 ```
 
 ## 開発とテスト
+
+開発する場合はGitでソースを取得し、使用するPython環境に編集可能な形式でインストールします。
+
+```powershell
+git clone https://github.com/Mask-coins/box_cache.git
+cd box_cache
+python -m pip install -e .
+```
 
 追加のテストライブラリは不要です。未インストールのソースからも実行できます。
 
