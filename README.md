@@ -19,7 +19,7 @@ PyPIには公開していません。
 キャッシュ専用の保存先を設定します。初回は、まだ存在しないディレクトリを指定してください。親ディレクトリは必要です。
 
 ```powershell
-python -m box_cache configure --cache-dir C:\my-cache
+python -m box_cache configure --cache-dir C:\Data\box_cache
 python -m box_cache config show
 ```
 
@@ -36,25 +36,25 @@ python -m box_cache config show
 ## 使い方
 
 ```python
-from box_cache import get, put
+import box_cache
 
 # 文字列を保存して読み出す
-put("weather", "tokyo", "晴れ")
-text = get("weather", "tokyo")
+box_cache.put("weather", "tokyo", "晴れ")
+text = box_cache.get("weather", "tokyo")
 print(text)  # 晴れ
 
 # バイト列も同じ操作で扱える
-put("images", "sample", b"\x00\x01\xff")
-binary = get("images", "sample")
+box_cache.put("images", "sample", b"\x00\x01\xff")
+binary = box_cache.get("images", "sample")
 
 # キャッシュがない場合は None
-missing = get("weather", "unknown")
+missing = box_cache.get("weather", "unknown")
 ```
 
 | 操作 | 動作 |
 | --- | --- |
-| `put(project, key, data)` | `str` または `bytes` を新しい版として保存する。成功時は `None` |
-| `get(project, key)` | 保存日時が最も新しい版を、保存時と同じ型で返す。未登録・破損時は `None` |
+| `box_cache.put(project, key, data)` | `str` または `bytes` を新しい版として保存する。成功時は `None` |
+| `box_cache.get(project, key)` | 保存日時が最も新しい版を、保存時と同じ型で返す。未登録・破損時は `None` |
 
 プロジェクトが異なれば、同じキーでも別のキャッシュです。
 空文字・空のバイト列も保存できるため、データの存在確認には `is not None` を使います。
@@ -63,10 +63,10 @@ JSONは文字列として保存し、必要に応じて呼び出し側でパー�
 
 ```python
 import json
-from box_cache import get, put
+import box_cache
 
-put("weather", "tokyo-json", '{"temperature": 20}')
-text = get("weather", "tokyo-json")
+box_cache.put("weather", "tokyo-json", '{"temperature": 20}')
+text = box_cache.get("weather", "tokyo-json")
 if text is not None:
     weather = json.loads(text)
 ```
@@ -82,7 +82,7 @@ if text is not None:
 保存先にはサブディレクトリを作りません。
 
 ```text
-my-cache/
+C:\Data\box_cache\
   .box_cache.json
   box_cache.log
   weather_<キーのSHA-256>_20261028T030000123Z.json
@@ -101,11 +101,11 @@ my-cache/
 不正な引数は `TypeError` または `ValueError` です。
 
 ```python
-from box_cache import CacheError, put
+import box_cache
 
 try:
-    put("weather", "tokyo", "data")
-except CacheError as error:
+    box_cache.put("weather", "tokyo", "data")
+except box_cache.CacheError as error:
     print(f"保存できませんでした: {error}")
 ```
 

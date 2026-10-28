@@ -65,7 +65,7 @@ AppData内で作成・更新する対象は、本パッケージ用と確認で�
 {
   "application": "box_cache",
   "config_version": 1,
-  "cache_dir": "D:\\my-cache"
+  "cache_dir": "C:\\Data\\box_cache"
 }
 ```
 
@@ -165,7 +165,7 @@ AppData内で作成・更新する対象は、本パッケージ用と確認で�
 配置例:
 
 ```text
-D:\my-cache\
+C:\Data\box_cache\
   <識別ファイル>
   weather_<キーのハッシュ>_20261028T030000000Z.json
   weather_<キーのハッシュ>_20261028T030000000Z.data
@@ -185,7 +185,7 @@ get(project: str, key: str) -> bytes | str | None
 利用者がAppDataを手作業で編集せず設定できるコマンド:
 
 ```powershell
-box-cache configure --cache-dir D:\my-cache
+box-cache configure --cache-dir C:\Data\box_cache
 box-cache config show
 ```
 
