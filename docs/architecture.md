@@ -28,6 +28,7 @@ box_cache/
 │     └─ cli.py
 └─ tests/
    ├─ support.py
+   ├─ test_attributes.py
    ├─ test_cache.py
    ├─ test_config.py
    └─ test_storage.py
@@ -40,11 +41,11 @@ box_cache/
 | `docs/specification.md` | 動作仕様、制約、未決定事項 |
 | `docs/architecture.md` | ディレクトリ構成と実装上の役割分担 |
 | `docs/development.md` | 開発用インストール、テスト、配布物の作成手順 |
-| `src/box_cache/__init__.py` | `put`、`get` などの公開APIの窓口 |
+| `src/box_cache/__init__.py` | `put`、`get`、`get_with_attributes` などの公開APIの窓口 |
 | `src/box_cache/__main__.py` | `python -m box_cache` の起動入口 |
 | `src/box_cache/cache.py` | 保存・読み出しの処理の組み立て、最新版の選択 |
 | `src/box_cache/config.py` | 固定位置の設定の読み書き、保存先の検証、初期設定 |
-| `src/box_cache/metadata.py` | メタデータの構造、型情報、サイズとハッシュによる検証 |
+| `src/box_cache/metadata.py` | メタデータの構造、型情報、付加情報の検証、サイズとハッシュによる検証 |
 | `src/box_cache/storage.py` | ファイル操作、一時ファイル、公開手順、排他制御、上書き防止 |
 | `src/box_cache/exceptions.py` | 例外とワーニングの定義 |
 | `src/box_cache/cli.py` | 設定・設定表示コマンド |

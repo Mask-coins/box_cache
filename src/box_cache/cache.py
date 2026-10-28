@@ -6,6 +6,7 @@ from pathlib import Path
 from . import metadata
 from .config import load_config
 from .exceptions import CacheError, CollisionError
+from .metadata import JSONValue
 from .storage import (
     is_reparse, json_bytes, locked, publish, replace_owned_json, report, temporary,
 )
@@ -32,11 +33,13 @@ def _versions(directory: Path, project: str, digest: str) -> list[tuple[str, Pat
     return versions
 
 
-def put(project: str, key: str, data: bytes | str) -> None:
-    """Append a version. Never overwrite an existing version."""
+def put(project: str, key: str, data: bytes | str, *,
+        attributes: dict[str, JSONValue] | None = None) -> None:
+    """Append a version with optional JSON attributes; never overwrite history."""
     metadata.validate_project(project)
     digest = metadata.key_hash(key)
     body, kind = metadata.encode(data)
+    saved_attributes = metadata.copy_attributes(attributes)
     directory = Path(load_config()["cache_dir"])
     try:
         with locked(directory):
@@ -48,7 +51,7 @@ def put(project: str, key: str, data: bytes | str) -> None:
             meta_path = Path(str(base) + ".json")
             if data_path.exists() or meta_path.exists():
                 raise CollisionError(f"Cache timestamp collision: {base}")
-            value = metadata.make_metadata(project, key, body, kind, saved)
+            value = metadata.make_metadata(project, key, body, kind, saved, saved_attributes)
             body_temp = temporary(directory, body)
             meta_temp = temporary(directory, json_bytes(value))
             publish(body_temp, data_path)
@@ -78,6 +81,18 @@ def _corrupt(directory: Path, path: Path, reason: str, value: dict | None) -> No
 
 def get(project: str, key: str) -> bytes | str | None:
     """Return the newest saved version, or None for a missing/corrupt cache."""
+    result = get_with_attributes(project, key)
+    return None if result is None else result[0]
+
+
+def get_with_attributes(
+    project: str, key: str,
+) -> tuple[bytes | str, dict[str, JSONValue]] | None:
+    """Return (body, user attributes) from one newest version under one lock.
+
+    Old versions without attributes return an empty dictionary. Management fields
+    such as saved_at and sha256 are not exposed through this dictionary.
+    """
     metadata.validate_project(project)
     digest = metadata.key_hash(key)
     directory = Path(load_config()["cache_dir"])
@@ -104,8 +119,8 @@ def get(project: str, key: str) -> bytes | str | None:
                     body = body_path.read_bytes()
                 except FileNotFoundError as exc:
                     raise ValueError("Cache body is missing") from exc
-                return metadata.decode(body, value)
-            except (ValueError, UnicodeError) as exc:
+                return metadata.decode(body, value), value.get("attributes", {})
+            except (ValueError, UnicodeError, RecursionError) as exc:
                 _corrupt(directory, meta_path, str(exc), value)
                 return None
     except (OSError, CacheError) as exc:

@@ -3,7 +3,13 @@
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 import re
+from typing import TypeAlias, Union
+
+JSONValue: TypeAlias = Union[
+    None, bool, int, float, str, list["JSONValue"], dict[str, "JSONValue"]
+]
 
 FILE_PATTERN = re.compile(
     r"(?P<project>.+)_(?P<digest>[0-9a-f]{64})_"
@@ -55,8 +61,52 @@ def encode(data: bytes | str) -> tuple[bytes, str]:
     raise TypeError("data must be bytes or str")
 
 
+def copy_attributes(attributes: dict[str, JSONValue] | None) -> dict[str, JSONValue]:
+    """Validate a JSON object and take a detached, lossless snapshot."""
+    if attributes is None:
+        return {}
+    if type(attributes) is not dict:
+        raise TypeError("attributes must be a dict with string keys, or None")
+    active = set()
+
+    def check(value):
+        kind = type(value)
+        if kind in (type(None), bool, int, str):
+            return
+        if kind is float:
+            if not math.isfinite(value):
+                raise ValueError("attributes cannot contain NaN or infinity")
+            return
+        if kind not in (dict, list):
+            raise TypeError("attributes values must be JSON-compatible built-in types")
+        identity = id(value)
+        if identity in active:
+            raise ValueError("attributes cannot contain circular references")
+        active.add(identity)
+        try:
+            if kind is dict:
+                for key, item in value.items():
+                    if type(key) is not str:
+                        raise TypeError("attributes dictionary keys must be strings")
+                    check(item)
+            else:
+                for item in value:
+                    check(item)
+        finally:
+            active.remove(identity)
+
+    try:
+        check(attributes)
+        copied = json.loads(json.dumps(attributes, ensure_ascii=True, allow_nan=False))
+        if copied != attributes:
+            raise ValueError("attributes must round-trip through JSON without changes")
+        return copied
+    except RecursionError as exc:
+        raise ValueError("attributes nesting is too deep") from exc
+
+
 def make_metadata(project: str, key: str, body: bytes, kind: str,
-                  saved: datetime) -> dict:
+                  saved: datetime, attributes: dict[str, JSONValue] | None = None) -> dict:
     return {
         "format_version": 1, "project": project, "key": key,
         # JSON combines adjacent surrogate escapes; this preserves exact str identity.
@@ -64,6 +114,7 @@ def make_metadata(project: str, key: str, body: bytes, kind: str,
         "saved_at": saved.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
         "kind": kind, "size_bytes": len(body),
         "sha256": hashlib.sha256(body).hexdigest(),
+        "attributes": attributes if attributes is not None else {},
     }
 
 
@@ -92,6 +143,13 @@ def validate_metadata(value: object, project: str, key: str, stamp: str) -> dict
     saved = datetime.fromisoformat(saved_at.replace("Z", "+00:00"))
     if timestamp(saved) != stamp:
         raise ValueError("Metadata timestamp does not match filename")
+    try:
+        attributes = value.get("attributes", {})
+        if type(attributes) is not dict:
+            raise TypeError("Metadata attributes must be a JSON object")
+        copy_attributes(attributes)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Invalid metadata attributes: {exc}") from exc
     return value
 
 

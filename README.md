@@ -53,8 +53,9 @@ missing = box_cache.get("weather", "unknown")
 
 | 操作 | 動作 |
 | --- | --- |
-| `box_cache.put(project, key, data)` | `str` または `bytes` を新しい版として保存する。成功時は `None` |
+| `box_cache.put(project, key, data, *, attributes=None)` | `str` または `bytes` と任意の付加情報を、新しい版として保存する。成功時は `None` |
 | `box_cache.get(project, key)` | 保存日時が最も新しい版を、保存時と同じ型で返す。未登録・破損時は `None` |
+| `box_cache.get_with_attributes(project, key)` | 同じ最新版の `(本体, 付加情報の辞書)` を返す。未登録・破損時は `None` |
 
 プロジェクトが異なれば、同じキーでも別のキャッシュです。
 空文字・空のバイト列も保存できるため、データの存在確認には `is not None` を使います。
@@ -70,6 +71,41 @@ text = box_cache.get("weather", "tokyo-json")
 if text is not None:
     weather = json.loads(text)
 ```
+
+### 本体と付加情報をまとめて保存・取得する
+
+取得元のURLやステータスなどを、本体と一緒に保存できます。
+HTTPアクセス自体は呼び出し側で行います。
+
+```python
+import box_cache
+
+url = "https://example.com/"
+box_cache.put(
+    "web",
+    url,
+    b"<html>example</html>",
+    attributes={
+        "schema_version": 1,
+        "url": url,
+        "status": 200,
+        "headers": {"content-type": "text/html"},
+    },
+)
+
+result = box_cache.get_with_attributes("web", url)
+if result is not None:
+    body, attributes = result
+    status = attributes["status"]
+```
+
+`get_with_attributes()` は、本体と付加情報を同じ版からまとめて読み出すため、読み出しの間に版がずれることはありません。
+従来の `get()` は、本体だけを返します。
+付加情報を指定せずに保存したキャッシュや、付加情報に未対応の旧形式のキャッシュでは、辞書は `{}` になります。
+
+付加情報は、JSONで内容を変えずに保存・復元できる辞書です。キーは文字列、値には文字列・整数・有限の小数・真偽値・`None`・リスト・辞書を使えます。
+バイト列、タプル、任意のPythonオブジェクト、循環参照、NaN・無限大、JSON変換で変わるサロゲートペアなどは受け付けません。
+保存日時やハッシュなどの管理メタデータとは別の領域に保存します。付加情報の項目の意味や、その変更時の互換性は呼び出し側で管理してください。
 
 ### プロジェクト名とキー
 
