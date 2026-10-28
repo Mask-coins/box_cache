@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 import hashlib
+import json
 import re
 
 FILE_PATTERN = re.compile(
@@ -58,6 +59,8 @@ def make_metadata(project: str, key: str, body: bytes, kind: str,
                   saved: datetime) -> dict:
     return {
         "format_version": 1, "project": project, "key": key,
+        # JSON combines adjacent surrogate escapes; this preserves exact str identity.
+        "key_utf8_hex": key.encode("utf-8", errors="surrogatepass").hex(),
         "saved_at": saved.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
         "kind": kind, "size_bytes": len(body),
         "sha256": hashlib.sha256(body).hexdigest(),
@@ -67,9 +70,17 @@ def make_metadata(project: str, key: str, body: bytes, kind: str,
 def validate_metadata(value: object, project: str, key: str, stamp: str) -> dict:
     if not isinstance(value, dict):
         raise ValueError("Metadata is not an object")
+    if "key_utf8_hex" in value:
+        key_matches = (
+            value["key_utf8_hex"] == key.encode("utf-8", errors="surrogatepass").hex()
+            and value.get("key") == json.loads(json.dumps(key, ensure_ascii=True))
+        )
+    else:
+        # Keep reading old records whose key survives a JSON round trip unchanged.
+        key_matches = value.get("key") == key
     if (type(value.get("format_version")) is not int
             or value["format_version"] != 1
-            or value.get("project") != project or value.get("key") != key
+            or value.get("project") != project or not key_matches
             or value.get("kind") not in ("bytes", "str")
             or type(value.get("size_bytes")) is not int or value["size_bytes"] < 0
             or not isinstance(value.get("sha256"), str)

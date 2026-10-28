@@ -36,6 +36,34 @@ class CacheTests(CacheTestCase):
         self.assertEqual(len(list(self.cache.glob("*.data"))), 2)
         self.assertEqual(len(list(self.cache.glob("project_*.json"))), 2)
 
+    def test_surrogate_pair_and_scalar_keys_remain_distinct(self):
+        keys = ["\ud83d\ude00", "\U0001f600", "x\ud83d\ude00\ud800y"]
+        with self.clock():
+            for index, key in enumerate(keys):
+                put("project", key, f"body-{index}")
+        for index, key in enumerate(keys):
+            with self.subTest(key=ascii(key)):
+                self.assertEqual(get("project", key), f"body-{index}")
+        self.assertEqual(len(list(self.cache.glob("*.data"))), len(keys))
+
+    def test_legacy_metadata_without_exact_key_field_remains_readable(self):
+        key = "日本語\U0001f600"
+        put("project", key, b"legacy")
+        path = next(self.cache.glob("project_*.json"))
+        value = json.loads(path.read_text(encoding="utf-8"))
+        del value["key_utf8_hex"]
+        path.write_text(json.dumps(value, ensure_ascii=True), encoding="utf-8")
+        self.assertEqual(get("project", key), b"legacy")
+
+    def test_tampered_exact_key_is_rejected(self):
+        put("project", "key", b"body")
+        path = next(self.cache.glob("project_*.json"))
+        value = json.loads(path.read_text(encoding="utf-8"))
+        value["key_utf8_hex"] = "00"
+        path.write_text(json.dumps(value), encoding="utf-8")
+        with self.assertWarns(CacheWarning):
+            self.assertIsNone(get("project", "key"))
+
     def test_different_projects_and_different_keys(self):
         with self.clock():
             put("first", "key", "first")
