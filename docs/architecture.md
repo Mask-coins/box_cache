@@ -2,8 +2,7 @@
 
 更新日: 2026-10-28
 
-本書は合意した実装時の構成を示す。動作仕様は [specification.md](specification.md) を参照する。
-以下は実装予定の構成であり、すべてのファイルが作成済みであることを示すものではない。
+本書は初期実装の構成を示す。動作仕様は [specification.md](specification.md) を参照する。
 
 ## ソースコード
 
@@ -19,6 +18,7 @@ box_cache/
 ├─ src/
 │  └─ box_cache/
 │     ├─ __init__.py
+│     ├─ __main__.py
 │     ├─ cache.py
 │     ├─ config.py
 │     ├─ metadata.py
@@ -26,6 +26,7 @@ box_cache/
 │     ├─ exceptions.py
 │     └─ cli.py
 └─ tests/
+   ├─ support.py
    ├─ test_cache.py
    ├─ test_config.py
    └─ test_storage.py
@@ -38,6 +39,7 @@ box_cache/
 | `docs/specification.md` | 動作仕様、制約、未決定事項 |
 | `docs/architecture.md` | ディレクトリ構成と実装上の役割分担 |
 | `src/box_cache/__init__.py` | `put`、`get` などの公開APIの窓口 |
+| `src/box_cache/__main__.py` | `python -m box_cache` の起動入口 |
 | `src/box_cache/cache.py` | 保存・読み出しの処理の組み立て、最新版の選択 |
 | `src/box_cache/config.py` | 固定位置の設定の読み書き、保存先の検証、初期設定 |
 | `src/box_cache/metadata.py` | メタデータの構造、型情報、サイズとハッシュによる検証 |
@@ -66,4 +68,5 @@ box_cache/
 ```
 
 キャッシュ保存先にサブディレクトリは作らない。一時ファイルや排他制御にファイルを使う場合も直下に置く。
-識別ファイル、ログ、一時ファイルなどの具体的な名前は、実装時に決定して仕様書へ反映する。
+識別ファイルは `.box_cache.json`、ログは `box_cache.log`、一時ファイルは `.box_cache-<UUID>.tmp` とする。
+WindowsのOSロックは識別ファイルを使い、追加のロックディレクトリは作らない。
